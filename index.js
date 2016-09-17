@@ -65,7 +65,7 @@ module.exports = function (context) {
         return
       }
       if (this.inst instanceof GainNode) {
-        this.isnt.gain.value = key
+        this.inst.gain.value = key
         return
       }
       this.inst[key] = value
