@@ -1,7 +1,9 @@
+const MediaStream = window.MediaStream || window.webkitMediaStream
 
 module.exports = function (context) {
   class Waudio {
     constructor (inst) {
+      if (inst instanceof Waudio) inst = inst.inst
       this.inst = inst
       if (inst instanceof MediaStream) {
         // Hack to get certain MediaStreams to work with contexts
@@ -9,7 +11,7 @@ module.exports = function (context) {
         this.node.src = URL.createObjectURL(inst)
       }
       if (!inst) {
-        this.inst = new Audio()
+        this.inst = new MediaStream()
       }
     }
     send (dest) {
@@ -26,6 +28,9 @@ module.exports = function (context) {
       if (this.inst instanceof AudioNode) {
         source = this.inst
       }
+      if (this.inst instanceof GainNode) {
+        source = this.inst
+      }
       if (!source) throw new Error('Not Implemented send for this type.')
       source.connect(dest.getDest())
       return dest
@@ -36,9 +41,12 @@ module.exports = function (context) {
         dest = context.createMediaStreamDestination(this.inst)
       }
       if (this.inst instanceof Audio) {
-        dest = context.createMediaElementDestination(this.inst)
+        dest = context.createMediaStreamDestination(this.inst)
       }
       if (this.inst instanceof AudioNode) {
+        dest = this.inst
+      }
+      if (this.inst instanceof GainNode) {
         dest = this.inst
       }
       if (!dest) throw new Error('Not Implemented dest for this type.')
@@ -74,6 +82,9 @@ module.exports = function (context) {
       if (this.inst instanceof AudioNode) {
         this.inst.connect(context.destination)
       }
+    }
+    toMediaStream () {
+      return context.createMediaStreamDestination(this.inst).stream
     }
   }
 
