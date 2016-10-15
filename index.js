@@ -8,8 +8,8 @@ module.exports = function (context) {
       if (!inst) inst = new Audio()
       if (inst instanceof Blob || inst instanceof File) {
         let url = URL.createObjectURL(inst)
-        this.inst = new Audio()
-        this.inst.src = url
+        inst = new Audio()
+        inst.src = url
       }
       this.inst = inst
 
