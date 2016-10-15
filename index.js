@@ -43,6 +43,9 @@ module.exports = function (context) {
     volume (value) {
       this.gain.gain.value = value
     }
+    play () {
+      this.gain.connect(context.destination)
+    }
   }
 
   let exports = inst => new Waudio(inst)
