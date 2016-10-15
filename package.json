@@ -1,6 +1,6 @@
 {
   "name": "waudio",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Web Audio made sane.",
   "main": "index.js",
   "scripts": {
