@@ -1,97 +1,53 @@
+/* global Audio, Blob, File,  URL */
+const record = require('media-recorder-stream')
 const MediaStream = window.MediaStream || window.webkitMediaStream
 
 module.exports = function (context) {
   class Waudio {
     constructor (inst) {
-      if (inst instanceof Waudio) inst = inst.inst
+      if (!inst) inst = new Audio()
+      if (inst instanceof Blob || inst instanceof File) {
+        let url = URL.createObjectURL(inst)
+        this.inst = new Audio()
+        this.inst.src = url
+      }
       this.inst = inst
-      if (inst instanceof MediaStream) {
-        // Hack to get certain MediaStreams to work with contexts
-        this.node = new Audio()
-        this.node.src = URL.createObjectURL(inst)
-      }
-      if (!inst) {
-        this.inst = new MediaStream()
-      }
-    }
-    send (dest) {
-      if (!(dest instanceof Waudio)) {
-        dest = new Waudio(dest)
-      }
-      let source
-      if (this.inst instanceof MediaStream) {
-        source = context.createMediaStreamSource(this.inst)
-      }
-      if (this.inst instanceof Audio) {
-        source = context.createMediaElementSource(this.inst)
-      }
-      if (this.inst instanceof AudioNode) {
-        source = this.inst
-      }
-      if (this.inst instanceof GainNode) {
-        source = this.inst
-      }
-      if (!source) throw new Error('Not Implemented send for this type.')
-      source.connect(dest.getDest())
-      return dest
-    }
-    getDest () {
-      let dest
-      if (this.inst instanceof MediaStream) {
-        dest = context.createMediaStreamDestination(this.inst)
-      }
-      if (this.inst instanceof Audio) {
-        dest = context.createMediaStreamDestination(this.inst)
-      }
-      if (this.inst instanceof AudioNode) {
-        dest = this.inst
-      }
-      if (this.inst instanceof GainNode) {
-        dest = this.inst
-      }
-      if (!dest) throw new Error('Not Implemented dest for this type.')
 
-      return dest
-    }
-    mute () {
-      if (this.inst instanceof MediaStream) {
-        this.inst.getAudioTracks().forEach(t => t.enabled = false)
+      this.destination = context.createMediaStreamDestination()
+      this.gain = context.createGain()
+
+      if (inst instanceof MediaStream) {
+        this.source = context.createMediaStreamSource(inst)
+        let oldtracks = inst.getAudioTracks()
+        let _add = track => inst.addTrack(track)
+        this.destination.stream.getAudioTracks().forEach(_add)
+        oldtracks.forEach(track => inst.removeTrack(track))
       }
-      this.muted = true
-    }
-    unmute () {
-      if (this.inst instanceof MediaStream) {
-        this.inst.getAudioTracks().forEach(t => t.enabled = true)
+      if (inst instanceof Audio) {
+        this.source = context.createMediaElementSource(inst)
       }
-      this.muted = false
-    }
-    set (key, value) {
-      if (!value && typeof key === 'object') {
-        for (var k in key) {
-          this.set(k, key[k])
-        }
-        return
-      }
-      if (this.inst instanceof GainNode) {
-        this.inst.gain.value = key
-        return
-      }
-      this.inst[key] = value
-    }
-    output () {
-      if (this.inst instanceof AudioNode) {
-        this.inst.connect(context.destination)
-      }
+
+      this.source.connect(this.gain)
+      this.gain.connect(this.destination)
     }
     toMediaStream () {
-      return context.createMediaStreamDestination(this.inst).stream
+      return this.destination.stream
+    }
+    connect (dest) {
+      if (dest instanceof Waudio) dest = dest.gain
+      this.gain.connect(dest)
+    }
+    record (opts) {
+      return record(this.toMediaStream(), opts)
+    }
+    volume (value) {
+      this.gain.gain.value = value
     }
   }
 
   let exports = inst => new Waudio(inst)
   exports.context = context
   exports.Waudio = Waudio
-  exports.gain = inst => new Waudio(inst || context.createGain())
 
   return exports
 }
