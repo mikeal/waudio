@@ -1,54 +1,79 @@
-/* global Audio, Blob, File,  URL */
+/* global Audio, Blob, File, URL */
 const record = require('media-recorder-stream')
 const MediaStream = window.MediaStream || window.webkitMediaStream
 
 module.exports = function (context) {
-  class Waudio {
-    constructor (inst) {
-      if (!inst) inst = new Audio()
-      if (inst instanceof Blob || inst instanceof File) {
-        let url = URL.createObjectURL(inst)
-        inst = new Audio()
-        inst.src = url
-      }
-      this.inst = inst
 
+  class MediaStreamWrapper {
+    constructor (stream) {
+      // Hack, but Chrome won't work without this
+      // We never do anything with this node, it's just a workaround
+      let node = new Audio()
+      node.src = URL.createObjectURL(stream)
+
+      this.microphone = context.createMediaStreamSource(stream)
+      this.gainFilter = context.createGain()
       this.destination = context.createMediaStreamDestination()
-      this.gain = context.createGain()
-
-      if (inst instanceof MediaStream) {
-        this.source = context.createMediaStreamSource(inst)
-        let oldtracks = inst.getAudioTracks()
-        let _add = track => inst.addTrack(track)
-        this.destination.stream.getAudioTracks().forEach(_add)
-        oldtracks.forEach(track => inst.removeTrack(track))
-      }
-      if (inst instanceof Audio) {
-        this.source = context.createMediaElementSource(inst)
-      }
-
-      this.source.connect(this.gain)
-      this.gain.connect(this.destination)
-    }
-    toMediaStream () {
-      return this.destination.stream
-    }
-    connect (dest) {
-      if (dest instanceof Waudio) dest = dest.gain
-      this.gain.connect(dest)
-    }
-    record (opts) {
-      return record(this.toMediaStream(), opts)
-    }
-    volume (value) {
-      this.gain.gain.value = value
-    }
-    play () {
-      this.gain.connect(context.destination)
+      this.microphone.connect(this.gainFilter)
+      this.gainFilter.connect(this.destination)
+      this.stream = this.destination.stream
     }
   }
 
-  let exports = inst => new Waudio(inst)
+  class Waudio {
+    constructor () {
+      this.el = new Audio()
+      this.source = context.createMediaElementSource(this.el)
+      this.gainFilter = context.createGain()
+      this.destination = context.createMediaStreamDestination()
+      this.source.connect(this.gainFilter)
+      this.gainFilter.connect(this.destination)
+      this.stream = this.destination.stream
+    }
+    connect (dest) {
+      if (dest instanceof Waudio) dest = dest.gainFilter
+      this.gainFilter.connect(dest)
+    }
+    record (opts) {
+      return record(this.stream, opts)
+    }
+    volume (value) {
+      this.gainFilter.gain.value = value
+    }
+    seek (value) {
+      this.el.currentTime = value
+    }
+    play () {
+      this.el.play()
+    }
+    pause () {
+      this.el.pause()
+    }
+    fadeVolume (value, delay) {
+      let now = context.currentTime
+      let gainNode = this.gainFilter.gain
+      gainNode.setValueAtTime(0, now)
+      gainNode.linearRampToValueAtTime(value, now + delay)
+    }
+  }
+
+
+  function createWaudio (inst, play) {
+    let waud
+    if (inst instanceof MediaStream) {
+      let wrapper = new MediaStreamWrapper(inst)
+      waud = new Waudio()
+      wrapper.gainFilter.connect(waud.gainFilter)
+    }
+    if (inst instanceof Blob || inst instanceof File) {
+      waud = new Waudio()
+      waud.el.src = URL.createObjectURL(inst)
+    }
+    if (play) waud.gainFilter.connect(context.destination)
+    return waud
+  }
+
+  let exports = createWaudio
   exports.context = context
   exports.Waudio = Waudio
 
