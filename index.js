@@ -57,7 +57,6 @@ module.exports = function (context) {
     }
   }
 
-
   function createWaudio (inst, play) {
     let waud
     if (inst instanceof MediaStream) {
@@ -68,6 +67,15 @@ module.exports = function (context) {
     if (inst instanceof Blob || inst instanceof File) {
       waud = new Waudio()
       waud.el.src = URL.createObjectURL(inst)
+    }
+    if (typeof inst === 'boolean') {
+      play = inst
+      inst = null
+    }
+    if (!inst) {
+      waud = new Waudio()
+    } else {
+      // TODO: type error.
     }
     if (play) waud.gainFilter.connect(context.destination)
     return waud
