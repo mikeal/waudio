@@ -29,6 +29,7 @@ module.exports = function (context) {
       this.source.connect(this.gainFilter)
       this.gainFilter.connect(this.destination)
       this.stream = this.destination.stream
+      this.context = context
     }
     connect (dest) {
       if (dest instanceof Waudio) dest = dest.gainFilter
@@ -42,6 +43,15 @@ module.exports = function (context) {
     }
     seek (value) {
       this.el.currentTime = value
+    }
+    mute () {
+      this._volume = this.gainFilter.gain.value
+      this.volume(0)
+    }
+    unmute () {
+      if (!this._volume) return
+      this.volume(this._volume)
+      this._volume = null
     }
     play () {
       this.el.play()
@@ -87,4 +97,3 @@ module.exports = function (context) {
 
   return exports
 }
-
