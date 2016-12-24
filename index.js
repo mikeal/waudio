@@ -32,7 +32,7 @@ module.exports = function (context) {
       this.context = context
     }
     connect (dest) {
-      if (dest instanceof Waudio) dest = dest.gainFilter
+      if (dest.gainFilter) dest = dest.gainFilter
       this.gainFilter.connect(dest)
     }
     record (opts) {
