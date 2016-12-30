@@ -35,6 +35,10 @@ module.exports = function (context) {
       if (dest.gainFilter) dest = dest.gainFilter
       this.gainFilter.connect(dest)
     }
+    disconnect (dest) {
+      if (dest && dest.gainFilter) dest = dest.gainFilter
+      this.gainFilter.disconnect(dest)
+    }
     record (opts) {
       return record(this.stream, opts)
     }
