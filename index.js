@@ -9,7 +9,11 @@ module.exports = function (context) {
       // Hack, but Chrome won't work without this
       // We never do anything with this node, it's just a workaround
       let node = new Audio()
-      node.src = URL.createObjectURL(stream)
+      try {
+        node.src = URL.createObjectURL(stream)
+      } catch (e) {
+        // This fails in some non-Chrome browsers, ignore it.
+      }
 
       this.microphone = context.createMediaStreamSource(stream)
       this.gainFilter = context.createGain()
