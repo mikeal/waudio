@@ -70,7 +70,7 @@ module.exports = function (context) {
     fadeVolume (value, delay) {
       let now = context.currentTime
       let gainNode = this.gainFilter.gain
-      gainNode.setValueAtTime(0, now)
+      gainNode.setValueAtTime(gainNode.value, now)
       gainNode.linearRampToValueAtTime(value, now + delay)
     }
   }
